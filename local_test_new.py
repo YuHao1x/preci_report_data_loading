@@ -25,7 +25,7 @@ hostname = '10.239.176.143'
 username = 'root'
 password = "openEuler12#$"
 remote_root_dir = '/root/ibt_preci/preci_report/'
-local_temp_dir = '/root/ibt_preci/preci_report_test'
+local_temp_dir = '/root/ibt_preci/preci_report_async_test'
 
 if not os.path.exists(local_temp_dir):
     os.makedirs(local_temp_dir)
@@ -141,6 +141,19 @@ def copy_remote_folder_to_local(sftp, remote_folder, local_folder):
             logging.info(f"Copied {remote_path} to {local_path}")
 
 
+def copy_remote_folder_to_local_rsync(remote_folder, local_folder, hostname, username):
+    # if not os.path.exists(local_folder):
+    #     os.makedirs(local_folder)
+    # ssh, sftp = connect_to_remote_server()
+    # remote_folders = sftp.listdir(remote_root_dir)
+
+    rsync_command = f"sshpass -p '{password}' rsync -avz {username}@{hostname}:{remote_folder} {local_folder}"
+    logging.info(f"Executing rsync command: {rsync_command}")
+    try:
+        subprocess.run(rsync_command, shell=True, check=True)
+    except subprocess.CalledProcessError as e:
+        logging.error(f"rsync command failed with error: {e}")
+
 def insert_data(folder_path, report_name, sftp=None):
     # 初始化数据结构
     data = {
@@ -187,15 +200,7 @@ def process_folder(folder_path, folder_name, sftp=None):
 
 
 
-# def copy_remote_folder_to_local_rsync(remote_folder, local_folder, hostname, username):
-#     if not os.path.exists(local_folder):
-#         os.makedirs(local_folder)
-#     rsync_command = f"rsync -avz -e 'ssh -i ~/.ssh/id_rsa' {username}@{hostname}:{remote_folder} {local_folder}"
-#     logging.info(f"Executing rsync command: {rsync_command}")
-#     try:
-#         subprocess.run(rsync_command, shell=True, check=True)
-#     except subprocess.CalledProcessError as e:
-#         logging.error(f"rsync command failed with error: {e}")
+
 
 def process_remote_data():
     ssh, sftp = connect_to_remote_server()
@@ -225,25 +230,27 @@ def copy_and_process_local_data():
             logging.info("复制文件夹 %s 到本地 %s", remote_folder, local_folder)
             if not os.path.exists(local_folder):
                 os.makedirs(local_folder)
-            copy_remote_folder_to_local(sftp, remote_folder, local_folder)
+            # copy_remote_folder_to_local(sftp, remote_folder, local_folder)
+            copy_remote_folder_to_local_rsync(remote_folder, local_folder, hostname, username)
+
             process_folder(local_folder, folder_name)
 
     sftp.close()
     ssh.close()
 
 def main():
-    start_time = time.time()
-    process_remote_data()
-    end_time = time.time()
-    logging.info(f"处理远程数据耗时: {end_time - start_time:.2f} 秒")
-    print(f"处理远程数据耗时: {end_time - start_time:.2f} 秒") #193.93
+    # start_time = time.time()
+    # process_remote_data()
+    # end_time = time.time()
+    # logging.info(f"处理远程数据耗时: {end_time - start_time:.2f} 秒")
+    # print(f"处理远程数据耗时: {end_time - start_time:.2f} 秒") #193.93
 
     # 复制远程数据到本地并处理
-    # start_time = time.time()
-    # copy_and_process_local_data()
-    # end_time = time.time()
-    # logging.info(f"复制远程数据到本地并处理耗时: {end_time - start_time:.2f} 秒")
-    # print(f"复制远程数据到本地并处理耗时: {end_time - start_time:.2f} 秒") # 348.51
+    start_time = time.time()
+    copy_and_process_local_data()
+    end_time = time.time()
+    logging.info(f"复制远程数据到本地并处理耗时: {end_time - start_time:.2f} 秒")
+    print(f"复制远程数据到本地并处理耗时: {end_time - start_time:.2f} 秒") # 348.51   121.12
 
 if __name__ == '__main__':
     main()
