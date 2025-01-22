@@ -2,11 +2,7 @@ import os
 import pymongo
 import re
 import datetime,time
-import subprocess
 import logging
-import paramiko
-import stat
-
 
 
 def configure_global_logging():
@@ -80,7 +76,7 @@ def check_and_update_interp(folder_path, report_name, existing_record):
                         {"report_name": report_name},
                         {"$set": {f"test_type.interp.result_detail.{file_name}": content}}
                     )
-                    global_logger.info(f"新增文件: {file_path} 到数据库中的 interp 文件夹")
+                    global_logger.info(f"Rewrite file: {file_path} to the interp folder in the database")
 
         if result_detail:
             collection.update_one(
@@ -134,12 +130,12 @@ def check_and_update_translator(folder_path, report_name, existing_record):
                 with open(file_path, 'r') as f:
                     content = f.read()
                     result_detail[file_name] = content
-                    # 更新到数据库
+                    
                     collection.update_one(
                         {"report_name": report_name},
                         {"$set": {f"test_type.translator.result_detail.{file_name}": content}}
                     )
-                    global_logger.info(f"新增文件: {file_path} 到数据库中的 translator 文件夹")
+                    global_logger.info(f"New file: {file_path} 到数据库中的 translator 文件夹")
 
         if result_detail:
             collection.update_one(
@@ -163,12 +159,12 @@ def check_and_update_spec(folder_path, report_name, existing_record):
     # logger = logging.getLogger('global_logger')
     spec_path = os.path.join(folder_path)
     new_spec_data = {"spec_detail_suite": {}}
-    overall_result = "NO RUN"  # 默认设置为 "NO RUN"
+    overall_result = "NO RUN"  
     
     for subdir_name in os.listdir(spec_path):
         subdir_path = os.path.join(spec_path, subdir_name)
         if os.path.isdir(subdir_path) and subdir_name.isdigit():
-            overall_result = "PASS"  # 找到至少一个全数字目录
+            overall_result = "PASS"  
             log_result = "PASS"
             html_file_path = None
             runtime = None
@@ -224,12 +220,12 @@ def check_and_update_spec(folder_path, report_name, existing_record):
 def process_spec_files(folder_path, data):
     # logger = logging.getLogger('global_logger')
     spec_data = {"spec_detail": {"spec_detail_suite": {}}}
-    overall_result = "NO RUN"  # 默认设置为 "NO RUN"
+    overall_result = "NO RUN"  
     
     for subdir_name in os.listdir(folder_path):
         subdir_path = os.path.join(folder_path, subdir_name)
         if os.path.isdir(subdir_path) and subdir_name.isdigit():
-            overall_result = "PASS"  # 找到至少一个全数字目录
+            overall_result = "PASS" 
             log_result = "PASS"
             html_file_path = None
             runtime = None
@@ -259,34 +255,30 @@ def process_spec_files(folder_path, data):
                     "html": html_file_path,
                     "spec_type": log_result,
                     "runtime": runtime
-                }
-    
+                }  
     spec_data["type"] = overall_result
     data["test_type"]["spec"] = spec_data
 
 
 def process_interp_files(interp_path, data):
     # logger = logging.getLogger('global_logger')
-    # 如果 test_type 中没有 interp 字段，初始化它
     if "interp" not in data["test_type"]:
         data["test_type"]["interp"] = {}
     interp_data = data["test_type"]["interp"]
     test_type_path = os.path.dirname(interp_path)
-
-    # 初始化结果
+  
     if os.path.exists(interp_path) and os.path.isdir(interp_path):
         result = "PASS"
         result_detail = {}
         interp_regression = []  
 
-
         for file_name in os.listdir(test_type_path):
             if file_name.lower().startswith("regression") and file_name.lower().endswith("interp"):
-                result = "FAIL"  # 如果找到符合条件的文件，将结果设置为 FAIL
+                result = "FAIL"  
                 file_path = os.path.join(test_type_path, file_name)
                 with open(file_path, 'r') as f:
                     content = f.read()
-                    # 解析文件内容
+
                     for line in content.strip().split("\n"):
                         parts = line.split()
                         if len(parts) >= 5:  
@@ -297,7 +289,7 @@ def process_interp_files(interp_path, data):
                                 "date": parts[3],
                                 "time": parts[4]
                             })
-                global_logger.info(f"读取 regression 文件: {file_path}")
+                global_logger.info(f"Read regression files: {file_path}")
 
       
         for file_name in os.listdir(interp_path):
@@ -308,7 +300,7 @@ def process_interp_files(interp_path, data):
             with open(file_path, 'r') as f:
                 content = f.read()
                 result_detail[file_name] = content
-                global_logger.info(f"读取 interp 文件: {file_path}")
+                global_logger.info(f"Read interp files: {file_path}")
 
    
         interp_data["result"] = result
@@ -318,14 +310,11 @@ def process_interp_files(interp_path, data):
 
 
 def process_translator_files(translator_path, data):
-    # logger = logging.getLogger('global_logger')
-    # 如果 test_type 中没有 interp 字段，初始化它
+
     if "translator" not in data["test_type"]:
         data["test_type"]["translator"] = {}
     translator_data = data["test_type"]["translator"]
     test_type_path = os.path.dirname(translator_path)
-
-    # 初始化结果
     if os.path.exists(translator_path) and os.path.isdir(translator_path):
         result = "PASS"
         result_detail = {}
@@ -347,7 +336,7 @@ def process_translator_files(translator_path, data):
                                 "date": parts[3],
                                 "time": parts[4]
                             })
-                global_logger.info(f"读取 regression 文件: {file_path}")
+                global_logger.info(f"Read regression files: {file_path}")
 
         for file_name in os.listdir(translator_path):
             file_path = os.path.join(translator_path, file_name)
@@ -357,7 +346,7 @@ def process_translator_files(translator_path, data):
             with open(file_path, 'r') as f:
                 content = f.read()
                 result_detail[file_name] = content
-                global_logger.info(f"读取 translator 文件: {file_path}")
+                global_logger.info(f"Read translator files: {file_path}")
 
   
         translator_data["result"] = result
@@ -365,28 +354,19 @@ def process_translator_files(translator_path, data):
         
         translator_data["translator_regression"] = translator_regression if translator_regression else []
 
-
-
-
-
-
 def determine_result(spec_result, interp_result, translator_result):
-    # 如果 spec_result 是 "NO RUN"，则忽略它对最终结果的影响
     if spec_result == "NO RUN":
-        # 仅根据 interp 和 translator 的结果来决定最终结果
         if interp_result == "FAIL" or translator_result == "FAIL":
             return "FAIL"
         else:
             return "PASS"
     else:
-        # 如果 spec_result 不是 "NO RUN"，则正常计算
         if spec_result == "FAIL" or interp_result == "FAIL" or translator_result == "FAIL":
             return "FAIL"
         else:
             return "PASS"
 
 def check_and_update_results(folder_path, report_name, existing_record):
-
 
     check_and_update_spec(folder_path, report_name, existing_record)
     check_and_update_interp(folder_path, report_name, existing_record)
@@ -441,7 +421,7 @@ def insert_data(folder_path, report_name):
     print(f"Processed folder: {folder_path}, data inserted into database")
 
 def process_folder(folder_path, folder_name):
-    # logger = logging.getLogger('global_logger')
+
     report_name_match = re.search(r'(^|[^a-zA-Z0-9])\d+_main_\d.*$', folder_name)
     # print(report_name_match)
     if report_name_match:
@@ -464,7 +444,7 @@ def main():
     for folder_name in os.listdir(local_temp_dir):
         # print(folder_name)
         local_test_temp_dir = os.path.join(local_temp_dir, folder_name)
-        # print(local_test_temp_dir,2222222222222222)
+
         if "main" in folder_name and not folder_name.startswith("2024") and should_copy_folder(folder_name):
             # print(folder_name)
             global_logger.info("Match report_name %s", folder_name)
@@ -473,7 +453,7 @@ def main():
 
 
 if __name__ == '__main__':
-    start_time = time.time()
+    # start_time = time.time()
     main()
-    end_time = time.time()
-    print(f"处理远程数据耗时: {end_time - start_time:.2f} 秒")
+    # end_time = time.time()
+    # print(f"处理数据耗时: {end_time - start_time:.2f} 秒")
